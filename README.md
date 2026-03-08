@@ -110,4 +110,4 @@ Este proyecto es de uso educativo y personal.
 
 ---
 
-**BLE Bike Trainer** - Desarrollado con la colaboración de la comunidad de entrenamiento doméstico.
+**BLE Bike Trainer** - Pepe Lluyot.
