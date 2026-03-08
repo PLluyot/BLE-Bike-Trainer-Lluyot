@@ -1,0 +1,1619 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bike Trainer - Simulación de Ruta</title>
+    <style>
+        :root {
+            --primary: #00d4aa;
+            --primary-dark: #00a888;
+            --bg-dark: #0a0a0a;
+            --bg-card: #141414;
+            --bg-card-hover: #1a1a1a;
+            --text-primary: #ffffff;
+            --text-secondary: #888888;
+            --danger: #ff4757;
+            --success: #2ed573;
+            --warning: #ffa502;
+            --border: #2a2a2a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        /* Status Card */
+        .status-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 16px;
+            border: 1px solid var(--border);
+        }
+
+        .status-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .status-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .status-value {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--danger);
+        }
+
+        .status-dot.connected {
+            background: var(--success);
+            box-shadow: 0 0 10px var(--success);
+        }
+
+        /* Connect Button */
+        .connect-btn {
+            width: 100%;
+            padding: 14px 20px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 16px;
+        }
+
+        .connect-btn.disconnect {
+            background: var(--danger);
+            color: white;
+        }
+
+        .connect-btn.connect {
+            background: var(--primary);
+            color: var(--bg-dark);
+        }
+
+        .connect-btn:hover {
+            transform: scale(1.02);
+        }
+
+        /* Route Input Section */
+        .route-input-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 16px;
+            border: 1px solid var(--border);
+        }
+
+        .route-input-title {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .route-input-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .route-input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+
+        .route-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .route-btn {
+            padding: 10px 16px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .route-btn.primary {
+            background: var(--primary);
+            color: var(--bg-dark);
+        }
+
+        .route-btn.secondary {
+            background: var(--border);
+            color: var(--text-primary);
+        }
+
+        .route-btn.secondary.selected {
+            background: var(--primary);
+            color: var(--bg-dark);
+        }
+
+        .route-btn:hover {
+            transform: scale(1.05);
+        }
+
+        /* Graph Container */
+        .graph-container {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 16px;
+            border: 1px solid var(--border);
+        }
+
+        .graph-title {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .graph-canvas {
+            width: 100%;
+            height: 200px;
+            background: var(--bg-dark);
+            border-radius: 8px;
+        }
+
+        .view-toggle-btn {
+            display: block;
+            width: 100%;
+            padding: 8px 12px;
+            margin-top: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .view-toggle-btn:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--primary);
+        }
+
+        /* Route Controls */
+        .route-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .play-btn {
+            flex: 1;
+            padding: 14px 20px;
+            font-size: 1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .play-btn.playing {
+            background: var(--warning);
+            color: var(--bg-dark);
+        }
+
+        .play-btn.paused {
+            background: var(--success);
+            color: var(--bg-dark);
+        }
+
+        .play-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .play-btn:hover:not(:disabled) {
+            transform: scale(1.02);
+        }
+
+        .stop-btn {
+            padding: 14px 20px;
+            font-size: 1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            background: var(--danger);
+            color: white;
+            transition: all 0.2s ease;
+        }
+
+        .stop-btn:hover {
+            transform: scale(1.05);
+        }
+
+        /* Simulation Info */
+        .sim-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .sim-info-item {
+            background: var(--bg-dark);
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .sim-info-value {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .sim-info-label {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            margin-top: 2px;
+            text-transform: uppercase;
+        }
+
+        /* Resistance Section */
+        .resistance-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 16px;
+            border: 1px solid var(--border);
+        }
+
+        .resistance-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .resistance-title {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .resistance-value {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .resistance-controls {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .resistance-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: 2px solid var(--primary);
+            background: transparent;
+            color: var(--primary);
+            font-size: 1.3rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .resistance-btn:hover {
+            background: var(--primary);
+            color: var(--bg-dark);
+        }
+
+        .resistance-slider {
+            flex: 1;
+            height: 8px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: var(--border);
+            border-radius: 4px;
+            outline: none;
+        }
+
+        .resistance-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+            border: 3px solid var(--bg-dark);
+        }
+
+        /* Live Stats */
+        .live-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .live-stat-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 16px;
+            border: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .live-stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--primary);
+            line-height: 1;
+        }
+
+        .live-stat-unit {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .live-stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 8px;
+            text-transform: uppercase;
+        }
+
+        /* Slope indicator */
+        .slope-indicator {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .slope-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .slope-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+
+        .slope-value.up {
+            color: var(--danger);
+        }
+
+        .slope-value.down {
+            color: var(--success);
+        }
+
+        .slope-value.flat {
+            color: var(--warning);
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            padding: 16px;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🚴 Bike Trainer - Ruta</h1>
+            <p>Simula la dureza según el terreno</p>
+        </div>
+
+        <!-- Status Card -->
+        <div class="status-card">
+            <div class="status-row">
+                <span class="status-label">Estado de conexión</span>
+                <div class="status-value">
+                    <span class="status-dot" id="statusDot"></span>
+                    <span id="statusText">Desconectado</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Connect Button -->
+        <button class="connect-btn connect" id="connectBtn">
+            🔗 Conectar Bicicleta
+        </button>
+
+        <!-- Graph -->
+        <div class="graph-container">
+            <div class="graph-title">Perfil de Elevación</div>
+            <canvas class="graph-canvas" id="elevationGraph"></canvas>
+            <button class="view-toggle-btn" id="viewToggleBtn">Vista: Detalle (2km)</button>
+
+            <!-- Route Controls -->
+            <div class="route-controls">
+                <button class="play-btn paused" id="playBtn" disabled>▶ Iniciar Simulación</button>
+                <button class="stop-btn" id="stopBtn" disabled>⏹</button>
+            </div>
+
+            <!-- Simulation Info -->
+            <div class="sim-info">
+                <div class="sim-info-item">
+                    <div class="sim-info-value" id="currentDistance">0.0</div>
+                    <div class="sim-info-label">km</div>
+                </div>
+                <div class="sim-info-item">
+                    <div class="sim-info-value" id="remainingKm">--</div>
+                    <div class="sim-info-label">resto</div>
+                </div>
+                <div class="sim-info-item">
+                    <div class="sim-info-value" id="currentTime">00:00</div>
+                    <div class="sim-info-label">tiempo</div>
+                </div>
+                <div class="sim-info-item">
+                    <div class="sim-info-value" id="targetResistance">10</div>
+                    <div class="sim-info-label">dureza</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slope Indicator -->
+        <div class="slope-indicator">
+            <span class="slope-label">Pendiente</span>
+            <span class="slope-value flat" id="slopeValue">0%</span>
+        </div>
+
+        <!-- Route Buttons -->
+        <div class="route-buttons" style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px;">
+            <button class="route-btn secondary" id="btnFlat" data-type="flat">Llano</button>
+            <button class="route-btn secondary" id="btnIntervals" data-type="intervals">Intervalos</button>
+            <button class="route-btn secondary" id="btnMountain" data-type="mountain">Montaña</button>
+            <button class="route-btn secondary" id="btnAlps" data-type="alps">Alpes</button>
+        </div>
+
+        <!-- Distance Input -->
+        <div class="route-input-row" style="margin-bottom: 16px;">
+            <input type="text" class="route-input" id="routeInput" placeholder="Distancia (km)" style="flex: 1;">
+            <button class="route-btn primary" id="loadRouteBtn" style="margin-left: 8px;">Crear Ruta</button>
+        </div>
+
+        <!-- Resistance Control -->
+        <div class="resistance-card">
+            <div class="resistance-header">
+                <span class="resistance-title">Nivel de Dureza</span>
+                <span class="resistance-value" id="resistanceValue">10</span>
+            </div>
+            <div class="resistance-controls">
+                <button class="resistance-btn" id="resistanceDown">−</button>
+                <input type="range" class="resistance-slider" id="resistanceSlider" min="1" max="32" value="10">
+                <button class="resistance-btn" id="resistanceUp">+</button>
+            </div>
+        </div>
+
+        <!-- Live Stats -->
+        <div class="live-stats">
+            <div class="live-stat-card">
+                <div class="live-stat-value" id="speedValue">0.0</div>
+                <div class="live-stat-unit">km/h</div>
+                <div class="live-stat-label">Velocidad</div>
+            </div>
+            <div class="live-stat-card">
+                <div class="live-stat-value" id="powerValue">0</div>
+                <div class="live-stat-unit">W</div>
+                <div class="live-stat-label">Potencia</div>
+            </div>
+        </div>
+
+        <!-- Settings -->
+        <div class="footer" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+            <span style="color: var(--text-secondary); font-size: 0.75rem;">Dureza plano:</span>
+            <input type="range" id="flatLevelSlider" min="1" max="20" value="10" style="width: 80px;">
+            <span id="flatLevelValue" style="color: var(--primary); font-weight: bold;">10</span>
+        </div>
+
+        <div class="footer">
+            <p>BLE Bike Trainer v2.0</p>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // CONFIGURACIÓN
+        // ============================================
+        const BIKE_CONFIG = {
+            serviceUUID: '00001826-0000-1000-8000-00805f9b34fb',
+            notifyCharacteristic: '00002ad2-0000-1000-8000-00805f9b34fb',
+            writeCharacteristic: '00002ad9-0000-1000-8000-00805f9b34fb',
+            resistanceLevels: [
+                new Uint8Array([0x04, 0x00, 0x00]),
+                new Uint8Array([0x04, 0x0a, 0x00]),
+                new Uint8Array([0x04, 0x14, 0x00]),
+                new Uint8Array([0x04, 0x1e, 0x00]),
+                new Uint8Array([0x04, 0x28, 0x00]),
+                new Uint8Array([0x04, 0x32, 0x00]),
+                new Uint8Array([0x04, 0x3c, 0x00]),
+                new Uint8Array([0x04, 0x46, 0x00]),
+                new Uint8Array([0x04, 0x50, 0x00]),
+                new Uint8Array([0x04, 0x5a, 0x00]),
+                new Uint8Array([0x04, 0x64, 0x00]),
+                new Uint8Array([0x04, 0x6e, 0x00]),
+                new Uint8Array([0x04, 0x78, 0x00]),
+                new Uint8Array([0x04, 0x82, 0x00]),
+                new Uint8Array([0x04, 0x8c, 0x00]),
+                new Uint8Array([0x04, 0x96, 0x00]),
+                new Uint8Array([0x04, 0xa0, 0x00]),
+                new Uint8Array([0x04, 0xaa, 0x00]),
+                new Uint8Array([0x04, 0xb4, 0x00]),
+                new Uint8Array([0x04, 0xbe, 0x00]),
+                new Uint8Array([0x04, 0xc8, 0x00]),
+                new Uint8Array([0x04, 0xd2, 0x00]),
+                new Uint8Array([0x04, 0xdc, 0x00]),
+                new Uint8Array([0x04, 0xe6, 0x00]),
+                new Uint8Array([0x04, 0xf0, 0x00]),
+                new Uint8Array([0x04, 0xfa, 0x00]),
+                new Uint8Array([0x04, 0x05, 0x01]),
+                new Uint8Array([0x04, 0x0f, 0x01]),
+                new Uint8Array([0x04, 0x19, 0x01]),
+                new Uint8Array([0x04, 0x23, 0x01]),
+                new Uint8Array([0x04, 0x2d, 0x01]),
+                new Uint8Array([0x04, 0x37, 0x01]),
+                new Uint8Array([0x04, 0x41, 0x01])
+            ]
+        };
+
+        // ============================================
+        // CLASE BLE TRAINER
+        // ============================================
+        class BleTrainer {
+            constructor() {
+                this.device = null;
+                this.server = null;
+                this.service = null;
+                this.notifyCharacteristic = null;
+                this.writeCharacteristic = null;
+                this.speed = 0;
+                this.cadence = 0;
+                this.power = 0;
+                this.resistance = 0;
+                this.isConnected = false;
+                this.isWriting = false;
+                this.onConnect = null;
+                this.onDisconnect = null;
+                this.onDataUpdate = null;
+            }
+
+            async scan() {
+                if (!navigator.bluetooth) {
+                    throw new Error('Web Bluetooth no disponible');
+                }
+                const device = await navigator.bluetooth.requestDevice({
+                    filters: [{ services: [BIKE_CONFIG.serviceUUID] }],
+                    optionalServices: []
+                });
+                return [device];
+            }
+
+            async connect(device) {
+                this.server = await device.gatt.connect();
+                this.device = device;
+                this.service = await this.server.getPrimaryService(BIKE_CONFIG.serviceUUID);
+                this.notifyCharacteristic = await this.service.getCharacteristic(BIKE_CONFIG.notifyCharacteristic);
+                this.writeCharacteristic = await this.service.getCharacteristic(BIKE_CONFIG.writeCharacteristic);
+                await this.startNotifications();
+                await this.initializeBike();
+                device.addEventListener('gattserverdisconnected', () => this.handleDisconnect());
+                this.isConnected = true;
+                if (this.onConnect) this.onConnect(device);
+                return true;
+            }
+
+            async initializeBike() {
+                if (!this.writeCharacteristic) return;
+                await this.writeCharacteristic.writeValue(new Uint8Array([0x00]));
+                await this.writeCharacteristic.writeValue(new Uint8Array([0x07]));
+            }
+
+            async startNotifications() {
+                await this.notifyCharacteristic.startNotifications();
+                this.notifyCharacteristic.addEventListener('characteristicvaluechanged', (event) => {
+                    const data = new Uint8Array(event.target.value.buffer);
+                    if (data.length >= 8) {
+                        this.speed = (data[2] + data[3] * 256) / 100;
+                        this.cadence = (data[4] + data[5] * 256) / 2;
+                        this.power = data[11] + data[12] * 256;
+                        this.resistance = (data[9] + data[10] * 256) / 10;
+                        if (this.onDataUpdate) {
+                            this.onDataUpdate({ speed: this.speed, cadence: this.cadence, power: this.power });
+                        }
+                    }
+                });
+            }
+
+            async setResistanceLevel(level) {
+                while (this.isWriting) await new Promise(r => setTimeout(r, 50));
+                if (!this.writeCharacteristic || !this.isConnected || level < 1 || level > 32) return false;
+                this.isWriting = true;
+                try {
+                    await this.writeCharacteristic.writeValueWithResponse(new Uint8Array([0x07]));
+                    await new Promise(r => setTimeout(r, 100));
+                    await this.writeCharacteristic.writeValueWithResponse(BIKE_CONFIG.resistanceLevels[level - 1]);
+                    return true;
+                } catch (e) { console.error(e); return false; }
+                finally { this.isWriting = false; }
+            }
+
+            async disconnect() {
+                if (this.device && this.device.gatt.connected) this.device.gatt.disconnect();
+                this.handleDisconnect();
+            }
+
+            handleDisconnect() {
+                this.isConnected = false;
+                if (this.onDisconnect) this.onDisconnect();
+            }
+        }
+
+        // ============================================
+        // GENERADOR DE RUTAS
+        // ============================================
+        class RouteGenerator {
+            static generateRoute(distanceKm, type = 'intervals', flatLevel = 10) {
+                const metersPerPoint = 50; // 50m por punto
+                const pointsPerKm = 1000 / metersPerPoint;
+                const points = Math.round(distanceKm * pointsPerKm);
+
+                // Arquitectura de la sesión:
+                // 15% calentamiento, 75% núcleo, 10% enfriamiento
+                const warmupPoints = Math.floor(points * 0.15);
+                const cooldownPoints = Math.floor(points * 0.10);
+                const mainStart = warmupPoints;
+                const mainEnd = points - cooldownPoints;
+
+                const routeData = [];
+                const mainLength = mainEnd - mainStart;
+
+                // Semilla aleatoria para variedad
+                const randomSeed = Math.random();
+                const varietyFactor = Math.min(1, distanceKm / 30);
+
+                // Generar resistencia según el tipo de entrenamiento
+                for (let i = 0; i < points; i++) {
+                    let resistance = flatLevel; // Resistencia base (nivel FLAT del usuario)
+
+                    if (i < warmupPoints) {
+                        // CALENTAMIENTO: 15% - subir gradualmente de 6 a 10
+                        const warmupMax = 8 + Math.floor(randomSeed * 4); // 8-12
+                        const warmupProgress = i / warmupPoints;
+                        resistance = Math.floor(6 + warmupProgress * (warmupMax - 6));
+                    } else if (i >= mainEnd) {
+                        // ENFRIAMIENTO: 85-100% - bajar gradualmente
+                        const lastMainRes = routeData[mainEnd - 1]?.resistance || 10;
+                        const cooldownProgress = (i - mainEnd) / cooldownPoints;
+                        resistance = Math.floor(lastMainRes * (1 - cooldownProgress));
+                    } else {
+                        // NÚCLEO: 15%-85% - resistencia según tipo
+                        const mainIndex = i - mainStart;
+                        const mainProgress = mainIndex / mainLength;
+
+                        switch (type) {
+                            case 'flat': {
+                                const flatBase = 10 + Math.sin(mainIndex * 0.1) * 2;
+                                const flatNoise = (Math.random() - 0.5) * 2;
+                                resistance = Math.floor(flatBase + flatNoise);
+                                if (Math.random() < 0.08 * varietyFactor) {
+                                    resistance = 14 + Math.floor(Math.random() * 4);
+                                } else if (Math.random() < 0.05 * varietyFactor) {
+                                    resistance = 6 - Math.floor(Math.random() * 2);
+                                }
+                                resistance = Math.max(5, Math.min(16, resistance));
+                                break;
+                            }
+                            case 'intervals': {
+                                const baseIntervalLen = 8 + Math.floor(varietyFactor * 6);
+                                const intervalLen = baseIntervalLen + Math.floor(Math.random() * 6) - 3;
+                                const intervalPhase = Math.floor(mainIndex / Math.max(6, intervalLen));
+                                const isPeak = intervalPhase % 2 === 0;
+                                if (isPeak) {
+                                    const peakMin = 18 + Math.floor(varietyFactor * 3);
+                                    const peakMax = 24 + Math.floor(varietyFactor * 5);
+                                    resistance = peakMin + Math.floor(Math.random() * (peakMax - peakMin));
+                                } else {
+                                    if (Math.random() < 0.2 * varietyFactor) {
+                                        resistance = 5 + Math.floor(Math.random() * 3);
+                                    } else if (Math.random() < 0.3 * varietyFactor) {
+                                        resistance = 12 + Math.floor(Math.random() * 4);
+                                    } else {
+                                        resistance = 8 + (Math.random() > 0.5 ? 2 : 0);
+                                    }
+                                }
+                                if (Math.random() < 0.08 * varietyFactor) {
+                                    resistance = isPeak ? 14 : 18;
+                                }
+                                break;
+                            }
+                            case 'mountain': {
+                                const numSteps = 3 + Math.floor(varietyFactor * 3);
+                                const stepSize = mainLength / numSteps;
+                                const currentStep = Math.floor(mainIndex / stepSize);
+                                let stepRes = 14 + currentStep * 4;
+                                stepRes += Math.floor((Math.random() - 0.5) * 4);
+                                const inDescent = (mainIndex % stepSize) > (stepSize * 0.65);
+                                if (inDescent && Math.random() < 0.4) {
+                                    stepRes = 6 - Math.floor(Math.random() * 4);
+                                }
+                                if (Math.random() < 0.25 * varietyFactor) {
+                                    stepRes = 10 + Math.floor(stepRes * 0.3);
+                                }
+                                resistance = Math.max(4, Math.min(30, stepRes));
+                                break;
+                            }
+                            case 'alps': {
+                                const freq1 = 0.025 + Math.sin(mainProgress * Math.PI) * 0.015;
+                                const freq2 = 0.018 + Math.cos(mainProgress * Math.PI) * 0.012;
+                                const amp1 = 4 + Math.random() * 4;
+                                const amp2 = 3 + Math.random() * 3;
+                                const baseLevel = 12 + (randomSeed - 0.5) * 6;
+                                const wave1 = Math.sin(mainIndex * freq1) * amp1;
+                                const wave2 = Math.cos(mainIndex * freq2) * amp2;
+                                resistance = Math.floor(baseLevel + wave1 + wave2);
+                                if (Math.random() < 0.12 * varietyFactor) {
+                                    resistance += 4 + Math.floor(Math.random() * 5);
+                                } else if (Math.random() < 0.1 * varietyFactor) {
+                                    resistance -= 2 + Math.floor(Math.random() * 3);
+                                }
+                                resistance = Math.max(6, Math.min(24, resistance));
+                                break;
+                            }
+                            default:
+                                resistance = 10;
+                        }
+                    }
+
+                    // Calcular pendiente basada en resistencia
+                    // 10 = 0%, cada punto de resistencia = 1% de pendiente
+                    // >10 = subida, <10 = bajada
+                    const slope = resistance - 10;
+
+                    // Calcular elevación acumulada
+                    // 1% de pendiente en 50m = 0.5m de elevación
+                    const elevChange = slope * 0.5;
+                    const prevElevation = routeData.length > 0 ? routeData[routeData.length - 1].elevation : 100;
+                    const elevation = prevElevation + elevChange;
+
+                    routeData.push({
+                        resistance: resistance,
+                        slope: slope,
+                        elevation: elevation
+                    });
+                }
+
+                return {
+                    distance: distanceKm,
+                    data: routeData,
+                    type: type,
+                    flatLevel: flatLevel
+                };
+            }
+
+            static getPreset(type, distanceKm = null, flatLevel = 10) {
+                const distances = { flat: 10, intervals: 15, mountain: 20, alps: 25 };
+                const d = distanceKm || distances[type] || 15;
+                return RouteGenerator.generateRoute(d, type, flatLevel);
+            }
+
+            static calculateSlope(currentElevation, nextElevation, distanceKm, pointIndex, totalPoints) {
+                if (pointIndex >= totalPoints - 1) return 0;
+                const segmentDistance = distanceKm / totalPoints;
+                const elevationChange = nextElevation - currentElevation;
+                return (elevationChange / (segmentDistance * 1000)) * 100;
+            }
+        }
+
+        const PRESET_ROUTES = {
+            flat: { name: 'Llano', type: 'flat' },
+            intervals: { name: 'Intervalos', type: 'intervals' },
+            mountain: { name: 'Montaña', type: 'mountain' },
+            alps: { name: 'Alpes', type: 'alps' }
+        };
+
+        // ============================================
+        // SIMULADOR DE RUTA
+        // ============================================
+        class RouteSimulator {
+            constructor() {
+                this.route = null;
+                this.isPlaying = false;
+                this.currentIndex = 0;
+                this.intervalId = null;
+                this.baseSpeed = 20; // km/h
+                this.flatResistance = 10;
+                this.currentSpeed = 0; // Velocidad actual de la bici
+
+                // Timer
+                this.seconds = 0;
+                this.timerInterval = null;
+
+                // Callbacks
+                this.onUpdate = null;
+                this.onComplete = null;
+            }
+
+            // Actualizar velocidad desde la bici
+            updateSpeed(speed) {
+                this.currentSpeed = speed || 0;
+            }
+
+            loadRoute(route) {
+                this.route = route;
+                this.currentIndex = 0;
+                this.isPlaying = false;
+                if (this.onUpdate) {
+                    this.onUpdate(this.getCurrentState());
+                }
+            }
+
+            start() {
+                if (!this.route || this.isPlaying) {
+                    return;
+                }
+                this.isPlaying = true;
+
+                // Iniciar cronómetro
+                this.timerInterval = setInterval(() => {
+                    this.seconds++;
+                    this.updateTimerDisplay();
+                }, 1000);
+
+                // Intervalo de la simulación
+                this.intervalId = setInterval(() => {
+                    if (this.currentIndex >= this.route.data.length - 1) {
+                        this.stop();
+                        if (this.onComplete) this.onComplete();
+                        return;
+                    }
+
+                    // Calcular cuántos puntos avanzar según la velocidad
+                    // Si velocidad = 0, no avanzamos
+                    if (this.currentSpeed > 0) {
+                        // Distancia recorrida en 1 segundo (km)
+                        const distanceInSecond = this.currentSpeed / 3600;
+                        // Cuántos puntos avanzamos (cada punto = route.distance / numPoints km)
+                        const distancePerPoint = this.route.distance / this.route.data.length;
+                        const pointsToAdvance = distanceInSecond / distancePerPoint;
+
+                        this.currentIndex += pointsToAdvance;
+
+                        // No exceder el final
+                        if (this.currentIndex >= this.route.data.length - 1) {
+                            this.currentIndex = this.route.data.length - 1;
+                            this.stop();
+                            if (this.onComplete) this.onComplete();
+                            return;
+                        }
+
+                        console.log('Speed:', this.currentSpeed.toFixed(1), 'km/h', '-> Advance:', pointsToAdvance.toFixed(3), 'points', 'Index:', Math.floor(this.currentIndex));
+                    }
+
+                    if (this.onUpdate) {
+                        this.onUpdate(this.getCurrentState());
+                    }
+                }, 1000);
+            }
+
+            pause() {
+                this.isPlaying = false;
+                if (this.intervalId) {
+                    clearInterval(this.intervalId);
+                    this.intervalId = null;
+                }
+                if (this.timerInterval) {
+                    clearInterval(this.timerInterval);
+                    this.timerInterval = null;
+                }
+            }
+
+            stop() {
+                this.pause();
+                this.currentIndex = 0;
+                this.seconds = 0;
+                this.updateTimerDisplay();
+                if (this.onUpdate) {
+                    this.onUpdate(this.getCurrentState());
+                }
+            }
+
+            updateTimerDisplay() {
+                const mins = Math.floor(this.seconds / 60);
+                const secs = this.seconds % 60;
+                document.getElementById('currentTime').textContent =
+                    mins.toString().padStart(2, '0') + ':' + secs.toString().padStart(2, '0');
+            }
+
+            getCurrentState() {
+                if (!this.route || !this.route.data) return null;
+
+                const dataLength = this.route.data.length;
+                const indexInt = Math.floor(this.currentIndex);
+                const safeIndex = Math.max(0, Math.min(indexInt, dataLength - 1));
+
+                const pointData = this.route.data[safeIndex];
+                const currentRes = pointData?.resistance || 10;
+                const currentElev = pointData?.elevation || 0;
+                const slope = pointData?.slope || 0;
+
+                // La resistencia objetivo ya viene del generador
+                const targetResistance = currentRes;
+
+                const distanceCovered = (this.currentIndex / dataLength) * this.route.distance;
+
+                return {
+                    index: safeIndex,
+                    distance: distanceCovered || 0,
+                    totalDistance: this.route.distance,
+                    elevation: currentElev,
+                    slope: slope,
+                    resistance: currentRes,
+                    targetResistance: targetResistance,
+                    progress: (this.currentIndex / dataLength) * 100
+                };
+            }
+
+            // calculateTargetResistance ya no es necesario porque viene del generador
+            calculateTargetResistance(slope, currentIndex, totalPoints) {
+                const flat = this.flatResistance;
+                const step = 3;
+
+                // Calcular posición (0-1)
+                const position = currentIndex / totalPoints;
+
+                // 15% inicial (calentamiento) y 10% final (enfriamiento)
+                if (position < 0.15) {
+                    // Calentamiento: resistencia más baja que flat
+                    // Progresión: empezar muy bajo y subir gradualmente
+                    const progress = position / 0.15; // 0 a 1
+                    // Empezar en flat-4 y llegar a flat
+                    const warmupResistance = Math.max(1, Math.round(flat - 4 + progress * 4));
+                    return warmupResistance;
+                } else if (position > 0.90) {
+                    // Enfriamiento: resistencia más baja
+                    const progress = (position - 0.90) / 0.10;
+                    // Empezar en flat y bajar a flat-4
+                    const cooldownResistance = Math.max(1, Math.round(flat - progress * 4));
+                    return cooldownResistance;
+                }
+
+                // Parte principal: resistencia normal según pendiente
+                if (slope > 10) return 32;
+                if (slope > 6) return Math.min(32, flat + 3 * step);
+                if (slope > 3) return Math.min(32, flat + 2 * step);
+                if (slope > 1) return Math.min(32, flat + 1 * step);
+                if (slope >= -1) return flat;
+                if (slope >= -3) return Math.max(1, flat - 1 * step);
+                if (slope >= -6) return Math.max(1, flat - 2 * step);
+                return Math.max(1, flat - 3 * step);
+            }
+
+            setFlatResistance(value) {
+                this.flatResistance = Math.max(1, Math.min(32, value));
+            }
+        }
+
+        // ============================================
+        // GRAFICADOR
+        // ============================================
+        class GraphRenderer {
+            constructor(canvasId) {
+                this.canvas = document.getElementById(canvasId);
+                this.ctx = this.canvas.getContext('2d');
+                this.route = null;
+                this.currentIndex = 0;
+
+                // Configuración de vista
+                this.viewMode = 'scrolling'; // 'scrolling' o 'full'
+                this.VISIBLE_KM = 2; // Ventana visible en km
+                this.POSITION_PERCENT = 0.2; // Posición del indicador (20% desde la izquierda)
+
+                // Nivel de resistencia base (llano)
+                this.flatResistance = 10;
+
+                // Configurar tamaño
+                this.resize();
+                window.addEventListener('resize', () => this.resize());
+            }
+
+            setFlatResistance(level) {
+                this.flatResistance = level;
+                this.render();
+            }
+
+            resize() {
+                const rect = this.canvas.getBoundingClientRect();
+                this.canvas.width = rect.width * 2;
+                this.canvas.height = rect.height * 2;
+                this.ctx.scale(2, 2);
+                this.render();
+            }
+
+            loadRoute(route) {
+                this.route = route;
+                this.currentIndex = 0;
+                // Guardar el flatLevel original de la ruta
+                this.originalFlatLevel = route.flatLevel || 10;
+                this.render();
+            }
+
+            setCurrentIndex(index) {
+                this.currentIndex = index;
+                this.render();
+            }
+
+            toggleViewMode() {
+                this.viewMode = this.viewMode === 'scrolling' ? 'full' : 'scrolling';
+                this.render();
+                return this.viewMode;
+            }
+
+            // Calcular el rango de índices visibles según el modo
+            getVisibleRange() {
+                if (!this.route || !this.route.data) return { start: 0, end: 0, stepX: 0 };
+
+                const data = this.route.data;
+                const totalPoints = data.length;
+                const distanceKm = this.route.distance;
+
+                if (this.viewMode === 'full') {
+                    // Vista completa: todos los puntos
+                    const stepX = (this.canvas.width / 2 - 10) / (totalPoints - 1);
+                    return { start: 0, end: totalPoints, stepX: stepX, offset: 0 };
+                } else {
+                    // Vista de scrolling: ventana de 2km
+                    const pointsPerKm = totalPoints / distanceKm;
+                    const visiblePoints = Math.ceil(this.VISIBLE_KM * pointsPerKm);
+                    const halfVisible = Math.floor(visiblePoints / 2);
+
+                    // El índice actual debe estar en la posición del 20%
+                    const centerIndex = Math.floor(this.currentIndex);
+                    let startIndex = Math.max(0, centerIndex - halfVisible);
+                    let endIndex = Math.min(totalPoints, startIndex + visiblePoints);
+
+                    // Ajustar si estamos cerca del final
+                    if (endIndex - startIndex < visiblePoints) {
+                        startIndex = Math.max(0, totalPoints - visiblePoints);
+                        endIndex = totalPoints;
+                    }
+
+                    const visibleDataPoints = endIndex - startIndex;
+                    const stepX = (this.canvas.width / 2 - 10) / (visibleDataPoints - 1);
+
+                    return {
+                        start: startIndex,
+                        end: endIndex,
+                        stepX: stepX,
+                        offset: startIndex
+                    };
+                }
+            }
+
+            // Obtener color según nivel de resistencia (estilo Bestcycling)
+            getResistanceColor(resistance) {
+                if (resistance >= 27) return '#e74c3c'; // Rojo (27-32)
+                if (resistance >= 21) return '#f39c12'; // Amarillo (21-26)
+                if (resistance >= 14) return '#27ae60'; // Verde (14-20)
+                if (resistance >= 7) return '#3498db'; // Azul (7-13)
+                return '#7f8c8d'; // Gris (1-6)
+            }
+
+            // Crear gradiente vertical para el área de resistencia
+            createResistanceGradient(height) {
+                const gradient = this.ctx.createLinearGradient(0, 0, 0, height);
+                gradient.addColorStop(0, 'rgba(231, 76, 60, 0.8)');    // Rojo arriba
+                gradient.addColorStop(0.2, 'rgba(243, 156, 18, 0.7)');  // Amarillo
+                gradient.addColorStop(0.45, 'rgba(39, 174, 96, 0.6)');  // Verde
+                gradient.addColorStop(0.7, 'rgba(52, 152, 219, 0.5)');  // Azul
+                gradient.addColorStop(1, 'rgba(127, 140, 141, 0.4)');   // Gris abajo
+                return gradient;
+            }
+
+            render() {
+                const width = this.canvas.width / 2;
+                const height = this.canvas.height / 2;
+                const padding = { top: 15, bottom: 25, left: 5, right: 5 };
+                const graphHeight = height - padding.top - padding.bottom;
+
+                this.ctx.clearRect(0, 0, width, height);
+
+                if (!this.route || !this.route.data || !this.route.data.length) return;
+
+                const data = this.route.data;
+
+                // Obtener rango visible según el modo
+                const { start, end, stepX, offset } = this.getVisibleRange();
+                const visibleData = data.slice(start, end);
+
+                // En modo scrolling, el indicador siempre está en la posición del 20%
+                // En modo full, el indicador avanza con el progreso
+                const indicatorPosition = this.viewMode === 'scrolling'
+                    ? this.POSITION_PERCENT
+                    : this.currentIndex / (data.length - 1);
+
+                // ============================================
+                // CAPA 1: ÁREA DE RESISTENCIA (Esfuerzo)
+                // ============================================
+                // Calcular offset: diferencia entre el nivel actual y el original de la ruta
+                const resOffset = this.flatResistance - (this.originalFlatLevel || this.flatResistance);
+
+                // Función para obtener resistencia con offset aplicado
+                const getResWithOffset = (res) => Math.max(1, Math.min(32, res + resOffset));
+
+                // Escala centrada en el nivel FLAT actual
+                const minRes = Math.max(1, this.flatResistance - 15);
+                const maxRes = Math.min(32, this.flatResistance + 15);
+                const resRange = maxRes - minRes;
+
+                // Dibujar áreas de color por resistencia
+                this.ctx.beginPath();
+                this.ctx.moveTo(padding.left, height - padding.bottom);
+
+                for (let i = 0; i < visibleData.length; i++) {
+                    const dataIndex = start + i;
+                    let x;
+                    if (this.viewMode === 'scrolling') {
+                        // En scrolling: el punto actual está en la posición del 20%
+                        const currentRelPos = this.currentIndex - start;
+                        x = padding.left + (i - currentRelPos) * stepX + (width - padding.left - padding.right) * this.POSITION_PERCENT;
+                    } else {
+                        x = padding.left + i * stepX;
+                    }
+                    const adjustedRes = getResWithOffset(visibleData[i].resistance);
+                    const y = padding.top + graphHeight - ((adjustedRes - minRes) / resRange) * graphHeight;
+                    this.ctx.lineTo(x, y);
+                }
+
+                this.ctx.lineTo(width - padding.right, height - padding.bottom);
+                this.ctx.closePath();
+
+                // Aplicar gradiente
+                this.ctx.fillStyle = this.createResistanceGradient(graphHeight);
+                this.ctx.fill();
+
+                // Dibujar línea de superficie de resistencia
+                this.ctx.beginPath();
+                for (let i = 0; i < visibleData.length; i++) {
+                    const dataIndex = start + i;
+                    let x;
+                    if (this.viewMode === 'scrolling') {
+                        const currentRelPos = this.currentIndex - start;
+                        x = padding.left + (i - currentRelPos) * stepX + (width - padding.left - padding.right) * this.POSITION_PERCENT;
+                    } else {
+                        x = padding.left + i * stepX;
+                    }
+                    const adjustedRes = getResWithOffset(visibleData[i].resistance);
+                    const y = padding.top + graphHeight - ((adjustedRes - minRes) / resRange) * graphHeight;
+                    if (i === 0) this.ctx.moveTo(x, y);
+                    else this.ctx.lineTo(x, y);
+                }
+                this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+                this.ctx.lineWidth = 1;
+                this.ctx.stroke();
+
+                // ============================================
+                // CAPA 2: LÍNEA DE ELEVACIÓN (Perfil)
+                // ============================================
+                // En modo scrolling, usamos escala local; en full, escala global
+                let minElev, maxElev, elevRange;
+
+                if (this.viewMode === 'scrolling') {
+                    // Escala local basada en los datos visibles
+                    const visibleElevations = visibleData.map(d => d.elevation);
+                    const localMin = Math.min(...visibleElevations);
+                    const localMax = Math.max(...visibleElevations);
+                    const localMargin = (localMax - localMin) * 0.15 || 10;
+                    minElev = Math.floor(localMin - localMargin);
+                    maxElev = Math.ceil(localMax + localMargin);
+                } else {
+                    // Escala global basada en todos los datos
+                    const elevations = data.map(d => d.elevation);
+                    const rawMinElev = Math.min(...elevations);
+                    const rawMaxElev = Math.max(...elevations);
+                    const elevMargin = (rawMaxElev - rawMinElev) * 0.1 || 10;
+                    minElev = Math.floor(rawMinElev - elevMargin);
+                    maxElev = Math.ceil(rawMaxElev + elevMargin);
+                }
+                elevRange = maxElev - minElev || 1;
+
+                // Dibujar línea de elevación con sombra
+                this.ctx.save();
+                this.ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+                this.ctx.shadowBlur = 6;
+                this.ctx.shadowOffsetX = 0;
+                this.ctx.shadowOffsetY = 0;
+
+                this.ctx.beginPath();
+                for (let i = 0; i < visibleData.length; i++) {
+                    let x;
+                    if (this.viewMode === 'scrolling') {
+                        const currentRelPos = this.currentIndex - start;
+                        x = padding.left + (i - currentRelPos) * stepX + (width - padding.left - padding.right) * this.POSITION_PERCENT;
+                    } else {
+                        x = padding.left + i * stepX;
+                    }
+                    const y = padding.top + graphHeight - ((visibleData[i].elevation - minElev) / elevRange) * graphHeight;
+                    if (i === 0) this.ctx.moveTo(x, y);
+                    else this.ctx.lineTo(x, y);
+                }
+                this.ctx.strokeStyle = '#ffffff';
+                this.ctx.lineWidth = 3;
+                this.ctx.stroke();
+                this.ctx.restore();
+
+                // ============================================
+                // INDICADOR DE PROGRESO
+                // ============================================
+                if (this.currentIndex > 0 && this.currentIndex < data.length) {
+                    let progressX;
+                    if (this.viewMode === 'scrolling') {
+                        // En modo scrolling, el indicador siempre está en la posición del 20%
+                        progressX = padding.left + (width - padding.left - padding.right) * this.POSITION_PERCENT;
+                    } else {
+                        // En modo full, el indicador avanza con el progreso
+                        progressX = padding.left + indicatorPosition * (width - padding.left - padding.right);
+                    }
+
+                    this.ctx.beginPath();
+                    this.ctx.strokeStyle = '#ffa502';
+                    this.ctx.lineWidth = 2;
+                    this.ctx.setLineDash([5, 5]);
+                    this.ctx.moveTo(progressX, padding.top);
+                    this.ctx.lineTo(progressX, height - padding.bottom);
+                    this.ctx.stroke();
+                    this.ctx.setLineDash([]);
+                }
+
+                // ============================================
+                // LÍNEA DE NIVEL BASE (FLAT)
+                // ============================================
+                // Las variables minRes, maxRes, resRange ya están definidas arriba
+                const flatY = padding.top + graphHeight - ((this.flatResistance - minRes) / resRange) * graphHeight;
+
+                this.ctx.beginPath();
+                this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                this.ctx.lineWidth = 1;
+                this.ctx.moveTo(padding.left, flatY);
+                this.ctx.lineTo(width - padding.right, flatY);
+                this.ctx.stroke();
+
+                // Etiqueta del nivel base
+                this.ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                this.ctx.font = '9px sans-serif';
+                this.ctx.textAlign = 'left';
+                this.ctx.fillText('FLAT: ' + this.flatResistance, padding.left + 2, flatY - 3);
+
+                // ============================================
+                // ETIQUETAS
+                // ============================================
+                this.ctx.fillStyle = '#fff';
+                this.ctx.font = 'bold 10px sans-serif';
+                // Resistencia máxima (relativa al FLAT)
+                const maxLabel = Math.min(32, this.flatResistance + 15);
+                this.ctx.fillText(maxLabel, padding.left + 2, padding.top + 8);
+                // Resistencia mínima (relativa al FLAT)
+                const minLabel = Math.max(1, this.flatResistance - 15);
+                this.ctx.fillText(minLabel, padding.left + 2, height - padding.bottom - 2);
+
+                // Elevación máxima a la derecha
+                this.ctx.textAlign = 'right';
+                this.ctx.fillText(Math.round(maxElev) + 'm', width - padding.right - 2, padding.top + 10);
+                // Elevación mínima
+                this.ctx.fillText(Math.round(minElev) + 'm', width - padding.right - 2, height - padding.bottom - 2);
+                this.ctx.textAlign = 'left';
+            }
+        }
+
+        // ============================================
+        // APP PRINCIPAL
+        // ============================================
+        class App {
+            constructor() {
+                this.bleTrainer = new BleTrainer();
+                this.simulator = new RouteSimulator();
+                this.graph = new GraphRenderer('elevationGraph');
+                this.autoAdjust = true;
+                this.selectedType = 'intervals'; // Tipo por defecto
+
+                this.setupCallbacks();
+                this.setupEventListeners();
+            }
+
+            setupCallbacks() {
+                this.bleTrainer.onConnect = (device) => this.updateConnectionStatus(true);
+                this.bleTrainer.onDisconnect = () => this.updateConnectionStatus(false);
+                this.bleTrainer.onDataUpdate = (data) => {
+                    this.updateLiveStats(data);
+                    // Actualizar velocidad en el simulador
+                    this.simulator.updateSpeed(data.speed);
+                };
+
+                this.simulator.onUpdate = (state) => this.handleSimulatorUpdate(state);
+                this.simulator.onComplete = () => this.handleSimulationComplete();
+            }
+
+            setupEventListeners() {
+                // Conexión Bluetooth
+                document.getElementById('connectBtn').addEventListener('click', async () => {
+                    if (this.bleTrainer.isConnected) {
+                        await this.bleTrainer.disconnect();
+                    } else {
+                        try {
+                            const devices = await this.bleTrainer.scan();
+                            if (devices.length > 0) {
+                                await this.bleTrainer.connect(devices[0]);
+                            }
+                        } catch (e) {
+                            console.error(e);
+                            if (e.name !== 'NotFoundError') alert('Error: ' + e.message);
+                        }
+                    }
+                });
+
+                // Cargar ruta
+                document.getElementById('loadRouteBtn').addEventListener('click', () => {
+                    const input = document.getElementById('routeInput').value;
+                    const distance = parseFloat(input);
+                    if (isNaN(distance) || distance < 1) {
+                        alert('Introduce una distancia en km');
+                        return;
+                    }
+                    const flatLevel = parseInt(document.getElementById('resistanceSlider').value) || 10;
+                    this.simulator.setFlatResistance(flatLevel);
+                    const route = RouteGenerator.generateRoute(distance, this.selectedType || 'intervals', flatLevel);
+                    this.loadRoute(route);
+                });
+
+                // Reproducción
+                document.getElementById('playBtn').addEventListener('click', () => {
+                    if (this.simulator.isPlaying) {
+                        this.simulator.pause();
+                        document.getElementById('playBtn').textContent = '▶ Reanudar';
+                        document.getElementById('playBtn').classList.remove('playing');
+                        document.getElementById('playBtn').classList.add('paused');
+                    } else {
+                        this.simulator.start();
+                        document.getElementById('playBtn').textContent = '⏸ Pausar';
+                        document.getElementById('playBtn').classList.remove('paused');
+                        document.getElementById('playBtn').classList.add('playing');
+                    }
+                });
+
+                document.getElementById('stopBtn').addEventListener('click', () => {
+                    this.simulator.stop();
+                    document.getElementById('playBtn').textContent = '▶ Iniciar Simulación';
+                    document.getElementById('playBtn').classList.remove('playing');
+                    document.getElementById('playBtn').classList.add('paused');
+                });
+
+                // Control manual de resistencia
+                document.getElementById('resistanceUp').addEventListener('click', async () => {
+                    const current = parseInt(document.getElementById('resistanceSlider').value);
+                    if (current < 32) await this.bleTrainer.setResistanceLevel(current + 1);
+                });
+
+                document.getElementById('resistanceDown').addEventListener('click', async () => {
+                    const current = parseInt(document.getElementById('resistanceSlider').value);
+                    if (current > 1) await this.bleTrainer.setResistanceLevel(current - 1);
+                });
+
+                document.getElementById('resistanceSlider').addEventListener('input', async (e) => {
+                    const level = parseInt(e.target.value);
+                    document.getElementById('resistanceValue').textContent = level;
+                    if (this.bleTrainer.isConnected) {
+                        await this.bleTrainer.setResistanceLevel(level);
+                    }
+                });
+            }
+
+            loadRoute(route) {
+                this.simulator.loadRoute(route);
+                this.graph.loadRoute(route);
+                document.getElementById('playBtn').disabled = false;
+                document.getElementById('stopBtn').disabled = false;
+                const flatLevel = this.simulator.flatResistance;
+                document.getElementById('resistanceSlider').value = flatLevel;
+                document.getElementById('resistanceValue').textContent = flatLevel;
+                document.getElementById('targetResistance').textContent = flatLevel;
+                // Reset timer y distancia
+                document.getElementById('currentTime').textContent = '00:00';
+                document.getElementById('currentDistance').textContent = '0.0';
+                document.getElementById('remainingKm').textContent = route.distance.toFixed(1);
+            }
+
+            // Cargar ruta rápida desde botones
+            loadQuickRoute(type) {
+                const flatLevel = this.simulator.flatResistance;
+                const route = RouteGenerator.getPreset(type, null, flatLevel);
+                this.loadRoute(route);
+            }
+
+            handleSimulatorUpdate(state) {
+                // Actualizar graph
+                this.graph.setCurrentIndex(state.index);
+
+                // Actualizar info
+                const remaining = Math.max(0, state.totalDistance - state.distance);
+                document.getElementById('currentDistance').textContent = state.distance.toFixed(1);
+                document.getElementById('remainingKm').textContent = remaining.toFixed(1);
+                document.getElementById('targetResistance').textContent = state.targetResistance;
+
+                // Actualizar indicador de pendiente
+                const slopeEl = document.getElementById('slopeValue');
+                const slope = state.slope.toFixed(1);
+                slopeEl.textContent = (slope >= 0 ? '+' : '') + slope + '%';
+                slopeEl.className = 'slope-value ' + (slope > 1 ? 'up' : slope < -1 ? 'down' : 'flat');
+
+                // Ajustar resistencia automáticamente
+                if (this.autoAdjust && this.bleTrainer.isConnected) {
+                    this.bleTrainer.setResistanceLevel(state.targetResistance);
+                    document.getElementById('resistanceSlider').value = state.targetResistance;
+                    document.getElementById('resistanceValue').textContent = state.targetResistance;
+                }
+            }
+
+            handleSimulationComplete() {
+                document.getElementById('playBtn').textContent = '▶ Iniciar Simulación';
+                document.getElementById('playBtn').classList.remove('playing');
+                document.getElementById('playBtn').classList.add('paused');
+                alert('¡Simulación completada!');
+            }
+
+            updateConnectionStatus(connected) {
+                const dot = document.getElementById('statusDot');
+                const text = document.getElementById('statusText');
+                const btn = document.getElementById('connectBtn');
+
+                if (connected) {
+                    dot.classList.add('connected');
+                    text.textContent = 'Conectado';
+                    btn.textContent = '🔌 Desconectar';
+                    btn.classList.remove('connect');
+                    btn.classList.add('disconnect');
+                } else {
+                    dot.classList.remove('connected');
+                    text.textContent = 'Desconectado';
+                    btn.textContent = '🔗 Conectar Bicicleta';
+                    btn.classList.remove('disconnect');
+                    btn.classList.add('connect');
+                }
+            }
+
+            updateLiveStats(data) {
+                document.getElementById('speedValue').textContent = (data.speed || 0).toFixed(1);
+                document.getElementById('powerValue').textContent = data.power || 0;
+            }
+        }
+
+        // Inicializar
+        let app;
+        document.addEventListener('DOMContentLoaded', () => {
+            app = new App();
+
+            // Event listener para cambiar modo de vista del gráfico
+            document.getElementById('viewToggleBtn').addEventListener('click', () => {
+                const viewMode = app.graph.toggleViewMode();
+                const btn = document.getElementById('viewToggleBtn');
+                if (viewMode === 'scrolling') {
+                    btn.textContent = 'Vista: Detalle (2km)';
+                } else {
+                    btn.textContent = 'Vista: Completa';
+                }
+            });
+
+            // Event listener para nivel plano
+            document.getElementById('flatLevelSlider').addEventListener('input', (e) => {
+                const level = parseInt(e.target.value);
+                document.getElementById('flatLevelValue').textContent = level;
+                document.getElementById('resistanceSlider').value = level;
+                document.getElementById('resistanceValue').textContent = level;
+                if (app.simulator) {
+                    app.simulator.setFlatResistance(level);
+                }
+                if (app.graph) {
+                    app.graph.setFlatResistance(level);
+                }
+            });
+
+            // Selección de tipo de ruta
+            const typeButtons = ['btnFlat', 'btnIntervals', 'btnMountain', 'btnAlps'];
+            typeButtons.forEach(id => {
+                document.getElementById(id).addEventListener('click', () => {
+                    // Quitar selected de todos
+                    typeButtons.forEach(btnId => {
+                        document.getElementById(btnId).classList.remove('selected');
+                    });
+                    // Agregar selected al actual
+                    document.getElementById(id).classList.add('selected');
+                    // Guardar tipo
+                    app.selectedType = document.getElementById(id).dataset.type;
+                });
+            });
+
+            // Por defecto seleccionar intervalos
+            document.getElementById('btnIntervals').classList.add('selected');
+        });
+    </script>
+</body>
+</html>
