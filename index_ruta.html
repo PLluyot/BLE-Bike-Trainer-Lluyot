@@ -533,10 +533,37 @@
             </div>
         </div>
 
+        <!-- Live Stats -->
+        <div class="live-stats">
+            <div class="live-stat-card">
+                <div class="live-stat-value" id="speedValue">0.0</div>
+                <div class="live-stat-unit">km/h</div>
+                <div class="live-stat-label">Velocidad</div>
+            </div>
+            <div class="live-stat-card">
+                <div class="live-stat-value" id="powerValue">0</div>
+                <div class="live-stat-unit">W</div>
+                <div class="live-stat-label">Potencia</div>
+            </div>
+        </div>
+
         <!-- Slope Indicator -->
         <div class="slope-indicator">
             <span class="slope-label">Pendiente</span>
             <span class="slope-value flat" id="slopeValue">0%</span>
+        </div>
+
+        <!-- Resistance Control -->
+        <div class="resistance-card">
+            <div class="resistance-header">
+                <span class="resistance-title">Nivel de Dureza</span>
+                <span class="resistance-value" id="resistanceValue">10</span>
+            </div>
+            <div class="resistance-controls">
+                <button class="resistance-btn" id="resistanceDown">−</button>
+                <input type="range" class="resistance-slider" id="resistanceSlider" min="1" max="32" value="10">
+                <button class="resistance-btn" id="resistanceUp">+</button>
+            </div>
         </div>
 
         <!-- Route Buttons -->
@@ -553,33 +580,6 @@
             <button class="route-btn primary" id="loadRouteBtn" style="margin-left: 8px;">Crear Ruta</button>
         </div>
 
-        <!-- Resistance Control -->
-        <div class="resistance-card">
-            <div class="resistance-header">
-                <span class="resistance-title">Nivel de Dureza</span>
-                <span class="resistance-value" id="resistanceValue">10</span>
-            </div>
-            <div class="resistance-controls">
-                <button class="resistance-btn" id="resistanceDown">−</button>
-                <input type="range" class="resistance-slider" id="resistanceSlider" min="1" max="32" value="10">
-                <button class="resistance-btn" id="resistanceUp">+</button>
-            </div>
-        </div>
-
-        <!-- Live Stats -->
-        <div class="live-stats">
-            <div class="live-stat-card">
-                <div class="live-stat-value" id="speedValue">0.0</div>
-                <div class="live-stat-unit">km/h</div>
-                <div class="live-stat-label">Velocidad</div>
-            </div>
-            <div class="live-stat-card">
-                <div class="live-stat-value" id="powerValue">0</div>
-                <div class="live-stat-unit">W</div>
-                <div class="live-stat-label">Potencia</div>
-            </div>
-        </div>
-
         <!-- Settings -->
         <div class="footer" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
             <span style="color: var(--text-secondary); font-size: 0.75rem;">Dureza plano:</span>
@@ -588,7 +588,7 @@
         </div>
 
         <div class="footer">
-            <p>BLE Bike Trainer v2.0</p>
+            <p>BLE Bike Trainer v2.0 | P.Lluyot</p>
         </div>
     </div>
 
@@ -923,6 +923,10 @@
                 this.route = route;
                 this.currentIndex = 0;
                 this.isPlaying = false;
+                // Sincronizar flatResistance con el flatLevel de la ruta
+                if (route.flatLevel) {
+                    this.flatResistance = route.flatLevel;
+                }
                 if (this.onUpdate) {
                     this.onUpdate(this.getCurrentState());
                 }
@@ -1013,11 +1017,21 @@
                 const safeIndex = Math.max(0, Math.min(indexInt, dataLength - 1));
 
                 const pointData = this.route.data[safeIndex];
-                const currentRes = pointData?.resistance || 10;
+                const baseRes = pointData?.resistance || 10;
                 const currentElev = pointData?.elevation || 0;
-                const slope = pointData?.slope || 0;
+                const baseSlope = pointData?.slope || 0;
 
-                // La resistencia objetivo ya viene del generador
+                // Calcular resistencia basada en el flatResistance actual
+                // Ajuste: offset entre el nivel actual y el nivel original de la ruta
+                const originalFlat = this.route.flatLevel || 10;
+                const flatOffset = this.flatResistance - originalFlat;
+                const currentRes = Math.max(1, Math.min(32, baseRes + flatOffset));
+
+                // Recalcular pendiente basada en la nueva resistencia
+                // 10 = 0%, cada punto de resistencia = 1% de pendiente
+                const slope = currentRes - 10;
+
+                // La resistencia objetivo es la resistencia recalculada
                 const targetResistance = currentRes;
 
                 const distanceCovered = (this.currentIndex / dataLength) * this.route.distance;
@@ -1161,11 +1175,18 @@
                     const visibleDataPoints = endIndex - startIndex;
                     const stepX = (this.canvas.width / 2 - 10) / (visibleDataPoints - 1);
 
+                    // Calcular posición del indicador: proporcional al progreso hasta alcanzar 20%
+                    // La cantidad de puntos que caben en el 20% de la pantalla
+                    const pointsAt20Percent = visibleDataPoints * this.POSITION_PERCENT;
+                    // El indicador se mueve desde 0% hasta 20% a medida que avanzamos
+                    const indicatorPercent = Math.min(this.POSITION_PERCENT, this.currentIndex / pointsAt20Percent);
+
                     return {
                         start: startIndex,
                         end: endIndex,
                         stepX: stepX,
-                        offset: startIndex
+                        offset: startIndex,
+                        indicatorPercent: indicatorPercent
                     };
                 }
             }
@@ -1203,13 +1224,13 @@
                 const data = this.route.data;
 
                 // Obtener rango visible según el modo
-                const { start, end, stepX, offset } = this.getVisibleRange();
+                const { start, end, stepX, offset, indicatorPercent } = this.getVisibleRange();
                 const visibleData = data.slice(start, end);
 
-                // En modo scrolling, el indicador siempre está en la posición del 20%
+                // En modo scrolling, el indicador se desplaza desde 0% hasta 20%
                 // En modo full, el indicador avanza con el progreso
-                const indicatorPosition = this.viewMode === 'scrolling'
-                    ? this.POSITION_PERCENT
+                const currentIndicatorPercent = this.viewMode === 'scrolling'
+                    ? (indicatorPercent !== undefined ? indicatorPercent : this.POSITION_PERCENT)
                     : this.currentIndex / (data.length - 1);
 
                 // ============================================
@@ -1236,7 +1257,7 @@
                     if (this.viewMode === 'scrolling') {
                         // En scrolling: el punto actual está en la posición del 20%
                         const currentRelPos = this.currentIndex - start;
-                        x = padding.left + (i - currentRelPos) * stepX + (width - padding.left - padding.right) * this.POSITION_PERCENT;
+                        x = padding.left + (i - currentRelPos) * stepX + (width - padding.left - padding.right) * currentIndicatorPercent;
                     } else {
                         x = padding.left + i * stepX;
                     }
@@ -1259,7 +1280,7 @@
                     let x;
                     if (this.viewMode === 'scrolling') {
                         const currentRelPos = this.currentIndex - start;
-                        x = padding.left + (i - currentRelPos) * stepX + (width - padding.left - padding.right) * this.POSITION_PERCENT;
+                        x = padding.left + (i - currentRelPos) * stepX + (width - padding.left - padding.right) * currentIndicatorPercent;
                     } else {
                         x = padding.left + i * stepX;
                     }
@@ -1309,7 +1330,7 @@
                     let x;
                     if (this.viewMode === 'scrolling') {
                         const currentRelPos = this.currentIndex - start;
-                        x = padding.left + (i - currentRelPos) * stepX + (width - padding.left - padding.right) * this.POSITION_PERCENT;
+                        x = padding.left + (i - currentRelPos) * stepX + (width - padding.left - padding.right) * currentIndicatorPercent;
                     } else {
                         x = padding.left + i * stepX;
                     }
@@ -1328,8 +1349,8 @@
                 if (this.currentIndex > 0 && this.currentIndex < data.length) {
                     let progressX;
                     if (this.viewMode === 'scrolling') {
-                        // En modo scrolling, el indicador siempre está en la posición del 20%
-                        progressX = padding.left + (width - padding.left - padding.right) * this.POSITION_PERCENT;
+                        // En modo scrolling, el indicador se desplaza desde 0% hasta 20%
+                        progressX = padding.left + (width - padding.left - padding.right) * currentIndicatorPercent;
                     } else {
                         // En modo full, el indicador avanza con el progreso
                         progressX = padding.left + indicatorPosition * (width - padding.left - padding.right);
@@ -1590,6 +1611,10 @@
                 document.getElementById('resistanceValue').textContent = level;
                 if (app.simulator) {
                     app.simulator.setFlatResistance(level);
+                    // Forzar actualización inmediata si hay una ruta cargada
+                    if (app.simulator.route && app.simulator.onUpdate) {
+                        app.simulator.onUpdate(app.simulator.getCurrentState());
+                    }
                 }
                 if (app.graph) {
                     app.graph.setFlatResistance(level);
