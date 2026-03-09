@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bike Trainer - Simulación de Ruta</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🚴 Bike Trainer - Ruta</h1>
+            <p>Simula la dureza según el terreno</p>
+        </div>
+
+        <!-- Status Card -->
+        <div class="status-card">
+            <div class="status-row">
+                <span class="status-label">Estado de conexión</span>
+                <div class="status-value">
+                    <span class="status-dot" id="statusDot"></span>
+                    <span id="statusText">Desconectado</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Connect Button -->
+        <button class="connect-btn connect" id="connectBtn">
+            🔗 Conectar Bicicleta
+        </button>
+
+        <!-- Graph -->
+        <div class="graph-container">
+            <div class="graph-title">Perfil de Elevación</div>
+            <canvas class="graph-canvas" id="elevationGraph"></canvas>
+            <button class="view-toggle-btn" id="viewToggleBtn">Vista: Detalle (2km)</button>
+
+            <!-- Route Controls -->
+            <div class="route-controls">
+                <button class="play-btn paused" id="playBtn" disabled>▶ Iniciar Simulación</button>
+                <button class="stop-btn" id="stopBtn" disabled>⏹</button>
+            </div>
+
+            <!-- Simulation Info -->
+            <div class="sim-info">
+                <div class="sim-info-item">
+                    <div class="sim-info-value" id="currentDistance">0.0</div>
+                    <div class="sim-info-label">km</div>
+                </div>
+                <div class="sim-info-item">
+                    <div class="sim-info-value" id="remainingKm">--</div>
+                    <div class="sim-info-label">resto</div>
+                </div>
+                <div class="sim-info-item">
+                    <div class="sim-info-value" id="currentTime">00:00</div>
+                    <div class="sim-info-label">tiempo</div>
+                </div>
+                <div class="sim-info-item">
+                    <div class="sim-info-value" id="targetResistance">10</div>
+                    <div class="sim-info-label">dureza</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Stats -->
+        <div class="live-stats">
+            <div class="live-stat-card">
+                <div class="live-stat-value" id="speedValue">0.0</div>
+                <div class="live-stat-unit">km/h</div>
+                <div class="live-stat-label">Velocidad</div>
+            </div>
+            <div class="live-stat-card">
+                <div class="live-stat-value" id="powerValue">0</div>
+                <div class="live-stat-unit">W</div>
+                <div class="live-stat-label">Potencia</div>
+            </div>
+        </div>
+
+        <!-- Slope Indicator -->
+        <div class="slope-indicator">
+            <span class="slope-label">Pendiente</span>
+            <span class="slope-value flat" id="slopeValue">0%</span>
+        </div>
+
+        <!-- Resistance Control -->
+        <div class="resistance-card">
+            <div class="resistance-header">
+                <span class="resistance-title">Nivel de Dureza</span>
+                <span class="resistance-value" id="resistanceValue">10</span>
+            </div>
+            <div class="resistance-controls">
+                <button class="resistance-btn" id="resistanceDown">−</button>
+                <input type="range" class="resistance-slider" id="resistanceSlider" min="1" max="32" value="10">
+                <button class="resistance-btn" id="resistanceUp">+</button>
+            </div>
+        </div>
+
+        <!-- Route Buttons -->
+        <div class="route-buttons">
+            <button class="route-btn secondary" id="btnFlat" data-type="flat">Llano</button>
+            <button class="route-btn secondary" id="btnIntervals" data-type="intervals">Intervalos</button>
+            <button class="route-btn secondary" id="btnMountain" data-type="mountain">Montaña</button>
+            <button class="route-btn secondary" id="btnAlps" data-type="alps">Alpes</button>
+        </div>
+
+        <!-- Distance Input -->
+        <div class="route-input-row" style="margin-bottom: 16px;">
+            <input type="text" class="route-input" id="routeInput" placeholder="Distancia (km)" style="flex: 1;">
+            <button class="route-btn primary" id="loadRouteBtn" style="margin-left: 8px;">Crear Ruta</button>
+        </div>
+
+        <!-- Settings -->
+        <div class="footer" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+            <span style="color: var(--text-secondary); font-size: 0.75rem;">Dureza plano:</span>
+            <input type="range" id="flatLevelSlider" min="1" max="20" value="10" style="width: 80px;">
+            <span id="flatLevelValue" style="color: var(--primary); font-weight: bold;">10</span>
+        </div>
+
+        <div class="footer">
+            <p>BLE Bike Trainer v2.0 | P.Lluyot</p>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
