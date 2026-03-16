@@ -54,10 +54,14 @@ class BleTrainer {
 
     handleData(event) {
         const data = new Uint8Array(event.target.value.buffer);
-        if (data.length >= 10) {
+        console.log('Data received, length:', data.length, 'values:', Array.from(data));
+        if (data.length >= 13) {
             this.resistance = (data[9] + data[10] * 256) / 10;
             if (this.onSpeedUpdate) {
-                this.onSpeedUpdate({ speed: ((data[4] + data[5] * 256) / 100), power: (data[7] + data[8] * 256) });
+                this.onSpeedUpdate({
+                    speed: ((data[2] + data[3] * 256) / 100),
+                    power: (data[11] + data[12] * 256)
+                });
             }
         }
     }
@@ -204,6 +208,9 @@ class RouteSimulator {
 
     updateSpeed(speed) {
         this.currentSpeed = speed || 0;
+        if (this.onUpdate) {
+            this.onUpdate(this.getCurrentState());
+        }
     }
 
     loadRoute(route) {
@@ -478,15 +485,35 @@ class GraphRenderer {
         ctx.stroke();
 
         // Indicador de posición actual
+        let indicatorX;
         if (this.viewMode === 'scrolling') {
-            const indicatorX = padding.left + (this.POSITION_PERCENT * graphWidth);
-            ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(indicatorX, padding.top);
-            ctx.lineTo(indicatorX, padding.top + graphHeight);
-            ctx.stroke();
+            // En modo scrolling, calcular posición dentro del rango visible
+            const { start: startIdx, end: endIdx } = this.getVisibleRange();
+            const visibleLength = endIdx - startIdx;
+
+            if (this.currentIndex >= endIdx - 1) {
+                // Estamos al final del rango visible
+                indicatorX = padding.left + graphWidth;
+            } else if (this.currentIndex <= startIdx) {
+                // Estamos al inicio
+                indicatorX = padding.left;
+            } else {
+                // Posición relativa dentro del rango visible
+                const relativePos = (this.currentIndex - startIdx) / visibleLength;
+                indicatorX = padding.left + (relativePos * graphWidth);
+            }
+        } else {
+            // Modo full: posición a lo largo de toda la ruta
+            const positionPercent = this.currentIndex / Math.max(1, this.route.data.length - 1);
+            indicatorX = padding.left + (positionPercent * graphWidth);
         }
+
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(indicatorX, padding.top);
+        ctx.lineTo(indicatorX, padding.top + graphHeight);
+        ctx.stroke();
 
         // Línea FLAT
         const flatY = padding.top + graphHeight - ((this.flatResistance - minRes) / resRange) * graphHeight;
